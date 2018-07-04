@@ -7,10 +7,10 @@ proper <- function(x) {
   stri_trans_totitle(x)
 }
 
-bookings.played <- read.csv("bookings-played-report-2016-05-30-2018-05-30.csv", header = T)
-bookings.made <- read.csv("bookings-made-report-2016-05-30-2018-05-30.csv", header = T)
-cancellations <- read.csv("cancellations-report-2018-01-01-2018-06-30.csv", header = T)
-contacts <- read.csv("contacts-report-2018-06-01-2018-06-30.csv", header = T)
+bookings.played <- read.csv("../../bookings-played-report-2016-05-30-2018-05-30.csv", header = T)
+bookings.made <- read.csv("../../bookings-made-report-2016-05-30-2018-05-30.csv", header = T)
+cancellations <- read.csv("../../cancellations-report-2018-01-01-2018-06-30.csv", header = T)
+contacts <- read.csv("../../contacts-report-2018-06-01-2018-06-30.csv", header = T)
 
 #summary(bookings.played)
 #summary(bookings.made)
@@ -58,7 +58,7 @@ bookings.played <- bookings.played[!duplicated(bookings.played[,-c(which(names(b
 #Regrion data extracted from Bureau of Statistics website : http://stat.data.abs.gov.au/Index.aspx?QueryId=920
 #http://stat.abs.gov.au/itt/r.jsp?databyregion#/
 #-------------------------------------------------------------------------------------------------------------------------------
-region.stats.2 <- read.csv("ABS_REGIONAL_ASGS2016_08062018161204286.population.csv", header = T)
+region.stats.2 <- read.csv("../../ABS_REGIONAL_ASGS2016_08062018161204286.population.csv", header = T)
 region.stats.2 <- region.stats.2[!duplicated(region.stats.2[,c("Data.item", "REGIONTYPE", "Region", "ASGS_2016")]), ]
 region.stats.2 <- region.stats.2[region.stats.2$TIME == 2016, ]
 region.stats.2 <- region.stats.2[,-c(1,7,8)]
@@ -143,7 +143,7 @@ region.stats[nrow(region.stats), "Region"] <- "North Tamborine"
 #-------------------------------------------------------------------------------------------------------------------------------
 # Edit facilities
 #-------------------------------------------------------------------------------------------------------------------------------
-facilities <- read.csv("facilities.csv", header = T)
+facilities <- read.csv("../../facilities.csv", header = T)
 facilities$Suburb <- proper(facilities$Suburb)
 facilities$Club.Facility.Name <- gsub("TC", "Tennis Club",facilities$Club.Name, ignore.case =  T)
 facilities[facilities$Facility.Name == "BEAUMARIS LTC" , "Club.Facility.Name"] <- "Beaumaris Lawn Tennis Club" 
@@ -235,7 +235,7 @@ venues[venues$Club.Facility.Name== "Wesley Uniting Church Tennis Club", c("Organ
 bookings.made.v <- merge(bookings.made, venues, by.x = "Venue.Name" , by.y = "Club.Facility.Name")
 bookings.played.v <- merge(bookings.played, venues, by.x = "Venue.Name" , by.y = "Club.Facility.Name")
 
-opening.times <- read.csv("Venue-opening-closing-times.csv", header = T)
+opening.times <- read.csv("../../Venue-opening-closing-times.csv", header = T)
 bookings.made.v <- merge(bookings.made.v, opening.times, by = c("Venue.Name"))
 bookings.played.v <- merge(bookings.played.v, opening.times, by = c("Venue.Name"))
 

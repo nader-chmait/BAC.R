@@ -1,5 +1,5 @@
 
-search.terms.by.date <- read.csv("search.terms.by.date.csv", header = T)
+search.terms.by.date <- read.csv("../../search.terms.by.date.csv", header = T)
 
 search.terms.by.date$Date <- as.Date(search.terms.by.date$Day.Index, format = "%d/%m/%y")
 search.terms.by.date$Day <- weekdays(search.terms.by.date$Date)
@@ -20,7 +20,7 @@ ggplot(data=search.terms.by.Month[!is.na(search.terms.by.Month$Month), ], aes(x=
 ggplot(data=search.terms.by.Year[!is.na(search.terms.by.Year$Year), ], aes(x=reorder(Year, Total.Unique.Searches), y=Total.Unique.Searches)) + geom_col()
 
 
-search.terms.by.keyword <- read.csv("search.terms.by.keyword.csv", header = T)
+search.terms.by.keyword <- read.csv("../../search.terms.by.keyword.csv", header = T)
 search.terms.by.keyword$keyword <- proper(as.character(search.terms.by.keyword$Search.Term))
 search.terms.by.keyword$Search.Exits.Perc <- as.numeric(gsub("%","" ,search.terms.by.keyword$X..Search.Exits))
 search.terms.by.keyword$Search.Refinements.Perc <- as.numeric(gsub("%","" ,search.terms.by.keyword$X..Search.Refinements))

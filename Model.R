@@ -30,6 +30,7 @@ sample <- sample.int(n = nrow(bookings.made.v.grouped), size = floor(.8*nrow(boo
 train <- bookings.made.v.grouped[sample, ]
 test  <- bookings.made.v.grouped[-sample, ]
 
+
 model <- multinom(Utilisation.Category~
               State + 
               Populationdensity.ERPat30June.persons.km2+ 
@@ -57,6 +58,15 @@ preds.table <- table(preds, test$Utilisation.Category)
 accuracy = sum(diag(preds.table))/sum(preds.table)
 accuracy
 
+
+test.potential.venues <- potential.courts[ ,  c("State" , "Populationdensity.ERPat30June.persons.km2", "RegionLocation" , "ClubsInSuburb" , 
+                                                "recently.advertised" , "Medianequivalisedtotalhouseholdincome.weekly.AUD" , "MedianAge.Persons.years", 
+                                                "WorkingAgePopulation.aged15.64years", "MaleFemalePerc", "Australiancitizen.Perc", "Booking.Month" , 
+                                                "Year.OfBooking" , "Booking.Day","Total.Opening.Hours", "Facility.Type" , "Organisation.Type" , "court.options")]
+
+preds.potential.clubs <- predict(model, newdata = test.potential.venues)
+potential.courts$Rating <- preds.potential.clubs
+View(potential.courts)
 #--------------------------------------------------------------------------------------------------------------
 #--------------------------------------------------------------------------------------------------------------
 #linear model

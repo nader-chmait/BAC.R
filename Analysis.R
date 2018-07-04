@@ -124,7 +124,7 @@ bookings.made.v.grouped$Total.Opening.Hours <- as.numeric(bookings.made.v.groupe
 #names(bookings.made.v.grouped)
 
 bookings.made.v.grouped$Has.Late.Bookings <- bookings.made.v.grouped$Total.Opening.Hours>12
-venue.regions <- read.csv("venueRegions.csv", header = T)
+venue.regions <- read.csv("../../venueRegions.csv", header = T)
 bookings.made.v.grouped <- merge(bookings.made.v.grouped, venue.regions, all.x = T)
 
 bookings.made.v.grouped.norm <- bookings.made.v.grouped %>% group_by(Venue.Name, Suburb, Post.Code, State, nbr.courts ) %>% 

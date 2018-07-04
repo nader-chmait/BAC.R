@@ -1,5 +1,5 @@
 library(lattice)
-all.members <- read.csv("Member_Report.csv", header = T)
+all.members <- read.csv("../../Member_Report.csv", header = T)
 facility.names <- facilities[,c("Club.Name", "Club.Facility.Name")]
 facility.names <- facility.names[!duplicated(facility.names),]
 
@@ -26,7 +26,7 @@ members <- as.data.frame(members)
 #members$First.Name <- trimws(members$First.Name)
 #members$Last.Name <- trimws(members$Last.Name)
 #nrow(members)
-booker.details <- read.csv("bookings-played-report-with-gender.csv", header = T)
+booker.details <- read.csv("../../bookings-played-report-with-gender.csv", header = T)
 #booker.details <- booker.details[,-which(names(booker.details) == "Venue.ID")]
 names(booker.details) %in% names(bookings.made)
 booker.details$Player.First.Name <- as.character(booker.details$Player.First.Name)
@@ -151,7 +151,7 @@ cor.test(turned.to.members$Populationdensity.ERPat30June.persons.km2, turned.to.
 turned.to.members$Venue.Name2 <- turned.to.members$Venue.Name
 turned.to.members[turned.to.members$Transition.Time <400 ,"Venue.Name2"] <- NA
 
-DistFromCBD <- read.csv("DistFromCBD.csv", header = T)
+DistFromCBD <- read.csv("../../DistFromCBD.csv", header = T)
 DistFromCBD$DistFromCBD <- as.integer(DistFromCBD$DistFromCBD)
 DistFromCBD$RegionLocation <- as.character("Remote area")
 DistFromCBD$RegionLocation <- as.character(DistFromCBD$RegionLocation)
