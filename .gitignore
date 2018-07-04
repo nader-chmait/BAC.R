@@ -1,0 +1,12 @@
+.DS_Store
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+*.csv
+*.xlsx
+*.xls
+*.ppt
+*.pptx
+*.jpeg
+Other
