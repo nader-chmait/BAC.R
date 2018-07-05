@@ -32,7 +32,7 @@ members.by.age$DOB <- as.Date(members.by.age$Player.DOB, format = "%d/%m/%Y")
 members.by.age[is.na(members.by.age$DOB) | members.by.age$DOB > "2010-01-01","DOB"] <- as.Date("2000-01-01")
 members.by.age$Age <- floor(age_calc(members.by.age$DOB, units = "years"))
 table(cut(members.by.age$Age,5))
-members.by.age$AgeGroup <- cut(members.by.age$Age, breaks = c(6, 19, 30, 45, 87) )
+members.by.age$AgeGroup <- cut(members.by.age$Age, breaks = c(0, 12,  17, 29, 49, 70, 88) )
 #members.by.age[members.by.age$AgeGroup =="(70.4,86.1] ", "AgeGroup"] <- "(54.8,70.4]"
 nrow(unique(members.by.age[,c("Player.First.Name","Player.Last.Name", "Player.DOB", "Venue.Name")])) 
 
@@ -235,4 +235,13 @@ cor.test(data1$MedianAge.Persons.years, data1$Utilisation)
 ggplot(my.data,aes(x=Session_Code,y=Ticket_Sale_Cnt,fill=factor(Entitlement_Onsale_Tournament)))+
   geom_bar(stat="identity",position="dodge") + scale_fill_discrete(name="Year") + ylab("Ticket Sales") + xlab("RLA Session")  + 
   theme(axis.text.x = element_text(angle = 90, hjust = 1)) + geom_text(aes(label=round(AvgPrice)), vjust=0, angle = 90)
+
+
+
+myvif <-function(R){ return (1/(1-R^2))}
+R <- seq(0.1, 0.99, 0.05)
+plot(y=myvif(R), x=R^2)
+abline(a=2.5, b=0)
+abline(a=1.8, b=0)
+
 

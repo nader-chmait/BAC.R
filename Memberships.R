@@ -114,7 +114,7 @@ members.changed.club <-  members.changed[members.changed$Transition.Time> 0,c("P
 members.changed.club<- members.changed.club[!duplicated(members.changed.club),] 
 nrow(members.changed.club)#706 transitions
 View(table(members.changed.club$Venue.Name))
-write.csv(members.changed.club, "member.transitions.list.csv")
+write.csv(members.changed.club, "../../member.transitions.list.csv")
 
 #H:That those people who transition from casual booker to club member at a club do so after x number of bookings / $ spent
 summary(members.changed$Populationdensity.ERPat30June.persons.km2) #, Populationdensity.ERPat30June.persons.km2>10000
@@ -164,7 +164,7 @@ DistFromCBD[DistFromCBD$DistFromCBD>= 41 & DistFromCBD$DistFromCBD< 80 , "Region
 turned.to.members <- merge(turned.to.members, DistFromCBD)
 View(table(turned.to.members[,c("RegionLocation")]))
 #write.csv(unique(bookings.made.v[bookings.made.v$Venue.Name %in% unique(turned.to.members$Venue.Name),
-#                     c("ClubsInSuburb", "Facility.Name", "Venue.Name", "State", "Populationdensity.ERPat30June.persons.km2")]), "DistFromCBD") 
+#                     c("ClubsInSuburb", "Facility.Name", "Venue.Name", "State", "Populationdensity.ERPat30June.persons.km2")]), "../../DistFromCBD") 
 #regional.location <- data.frame(Venue.Name = unique(turned.to.members$Venue.Name),
 #                                Distance.From.CBD.Km = c(60, 5, 15.2, 9.2, 17.5, 22.2, 6.3, 33.2, 58.7, 3.2, 31.7, 36.2, 5.6,
 #                                                         15, 45.6, 73.2, 14, 7.2))

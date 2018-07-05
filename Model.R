@@ -14,14 +14,15 @@ library(e1071)
 bookings.made.v.grouped$Booking.Month <- as.factor(bookings.made.v.grouped$Booking.Month)
 bookings.made.v.grouped$Utilisation.Category <-  cut(bookings.made.v.grouped$Utilisation, breaks = c(0.014, 1.004,  2.825,  7.158, 27.568, 58.889 ), 
                                                      include.lowest = TRUE,
-                                                     labels= c( "-2","-1", "0", "+1", "+2"))
+                                                     labels= c( "-2","-1", "+0", "+1", "+2"))
 #View(bookings.made.v.grouped[1:10,c("Utilisation", "Utilisation.Category")])
 
 cv.lm(data = bookings.made.v.grouped, form.lm = formula(log(Utilisation) ~ State + Populationdensity.ERPat30June.persons.km2 +
                                                           RegionLocation + ClubsInSuburb + recently.advertised + Medianequivalisedtotalhouseholdincome.weekly.AUD +
                                                           MedianAge.Persons.years + WorkingAgePopulation.aged15.64years + MaleFemalePerc + Australiancitizen.Perc + 
                                                           Booking.Month + as.factor(Year.OfBooking) + Booking.Day +
-                                                          Total.Opening.Hours+ Facility.Type + Organisation.Type + court.options), m=3, dots = FALSE, seed=29, plotit=TRUE, printit=TRUE)
+                                                          Total.Opening.Hours+ Facility.Type + Organisation.Type + nbr.courts + has.Lights + 
+                                                          has.indoor + has.hard + has.clay + has.grass + has.hot.shot), m=3, dots = FALSE, seed=29, plotit=TRUE, printit=TRUE)
 
 bookings.made.v.grouped$Utilisation.Category  <- relevel(bookings.made.v.grouped$Utilisation.Category , ref = "0")
 set.seed(1987) # Set Seed so that same sample can be reproduced in future also
@@ -48,7 +49,9 @@ model <- multinom(Utilisation.Category~
               Total.Opening.Hours+
               Facility.Type +  
               Organisation.Type +
-              court.options,
+              nbr.courts +
+              has.Lights + has.hard*has.clay*has.grass + has.hot.shot,
+              #court.options,
             data = train, maxit=1000)
 #summary(model)
 
@@ -62,17 +65,20 @@ accuracy
 test.potential.venues <- potential.courts[ ,  c("State" , "Populationdensity.ERPat30June.persons.km2", "RegionLocation" , "ClubsInSuburb" , 
                                                 "recently.advertised" , "Medianequivalisedtotalhouseholdincome.weekly.AUD" , "MedianAge.Persons.years", 
                                                 "WorkingAgePopulation.aged15.64years", "MaleFemalePerc", "Australiancitizen.Perc", "Booking.Month" , 
-                                                "Year.OfBooking" , "Booking.Day","Total.Opening.Hours", "Facility.Type" , "Organisation.Type" , "court.options")]
+                                                "Year.OfBooking" , "Booking.Day","Total.Opening.Hours", "Facility.Type" , "Organisation.Type" ,
+                                                "nbr.courts",  "Lighted.Full.Count.All","has.Lights", "has.indoor", "has.outdoor", "has.hard", "has.clay", "has.grass", "has.hot.shot")]
 
 preds.potential.clubs <- predict(model, newdata = test.potential.venues)
 potential.courts$Rating <- preds.potential.clubs
-View(potential.courts)
+#View(potential.courts)
+
+ggplot(potential.courts, aes(x=Rating, y=Club.Facility.Name, col=State)) + geom_point() + ylab("")
 #--------------------------------------------------------------------------------------------------------------
 #--------------------------------------------------------------------------------------------------------------
 #linear model
-model <- lm(log(Utilisation) ~ #Utilisation  
+model <- lm(log(Utilisation) ~ #Utilisation   log(Booking.Duration) ~ #
             State + 
-            Populationdensity.ERPat30June.persons.km2+ 
+            Populationdensity.ERPat30June.persons.km2+ log(Total.Availablility) +
             #Geographical.classification +
             RegionLocation +
             ClubsInSuburb+
@@ -114,15 +120,9 @@ model <- lm(log(Utilisation) ~ #Utilisation
             Facility.Type +  
             Organisation.Type +
             #Organisation.Status+ 
-            court.options,
-            #nbr.courts,
-            #has.Lights +
-            #has.indoor +
-            #has.outdoor +
-            #has.hard +
-            #has.clay +
-            #has.grass +
-            #has.hot.shot,
+            #court.options+
+            nbr.courts +
+            has.Lights + has.hard*has.clay*has.grass + has.hot.shot,
             #Total.Full.Count.Grass + 
             #Total.Full.Count.Synthetic.Grass + 
             #Total.Full.Count.Clay  +
