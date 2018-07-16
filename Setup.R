@@ -1,3 +1,4 @@
+rm(list = ls())
 library(dplyr)
 library(stringi)
 library(tidyr)
@@ -6,6 +7,19 @@ library(lubridate)
 proper <- function(x) {
   stri_trans_totitle(x)
 }
+
+normBetweenZeroOne <-
+  function(x) {
+    x <- (x - min(x)) / (max(x) - min(x))
+    return(x)
+  }
+
+normBetweenMinMax <-
+  function(x, a, b) {
+    x <- (b-a)*((x - min(x)) /(max(x) - min(x))) + a
+    return(x)
+  }
+
 
 bookings.played <- read.csv("../../bookings-played-report-2016-05-30-2018-05-30.csv", header = T)
 bookings.made <- read.csv("../../bookings-made-report-2016-05-30-2018-05-30.csv", header = T)
@@ -24,7 +38,6 @@ bookings.made <- bookings.made[-cancelled,]
 cancelled.played <- (do.call(paste0, bookings.played[,c("Venue.ID", "Booking.ID", "Booking.Date")]) %in% do.call(paste0, cancellations[,c("Venue.ID", "Booking.ID", "Booking.Date")]))
 cancelled.played<- which(cancelled.played == TRUE)
 bookings.made <- bookings.made[-cancelled.played,]
-
 
 
 bookings.made$Booking.Date <- as.Date(bookings.made$Booking.Date, "%d/%m/%Y")
@@ -100,7 +113,7 @@ region.stats[nrow(region.stats) +1, ] <- region.stats[region.stats$Region == "As
 region.stats[nrow(region.stats), "Region"] <- "Aspendale"
 region.stats[nrow(region.stats) +1, ] <- region.stats[region.stats$Region == "Rosebud" & region.stats$State == "VIC", ] 
 region.stats[nrow(region.stats), "Region"] <- "Boneo"
-region.stats[nrow(region.stats) +1, ] <- region.stats[region.stats$Region == "Wambo" & region.stats$State == "QLD", ] 
+region.stats[nrow(region.stats) +1, ] <- region.stats[region.stats$Region == "Toowoomba" & region.stats$ASGS_2016 ==  "317" & region.stats$State == "QLD", ] 
 region.stats[nrow(region.stats), "Region"] <- "Dalby"
 region.stats[nrow(region.stats) +1, ] <- region.stats[region.stats$Region == "Nedlands" & region.stats$State == "WA", ] 
 region.stats[nrow(region.stats), "Region"] <- "Dalkeith"
@@ -312,19 +325,133 @@ bookings.made.v<- bookings.made.v[bookings.made.v$dup.index ==1,]
 nrow(bookings.made.v)
 
 
-# booking.duplicates$Is.Duplicate <- 1
-# View(booking.duplicates[booking.duplicates$Player.Last.Name=="HOGAN",])
-# booking.duplicates$Match <- booking.duplicates$Booking.Duration == booking.duplicates$sum.booking.duration
-# str(booking.duplicates)
-# table(booking.duplicates$Match)
-# #nrow(t)
-# bookings.made.v <- merge(bookings.made.v, booking.duplicates, all.x = T)
-# bookings.made.v[is.na(bookings.made.v$Is.Duplicate), "Is.Duplicate"] <- 0
-# bookings.made.v<- bookings.made.v[bookings.made.v$Is.Duplicate == 0, ]
-# #nrow(t)
-
-
 # discripenciesx<- (do.call(paste0, x[ , c("Suburb", "State")]) %in% do.call(paste0, region.stats[, c("Region", "State")]))
 # discripenciesx<- which(discripenciesx == FALSE)
 # View(unique(x[discripenciesx, c("Suburb", "State")]))
-  
+
+
+bookings.closed <-  bookings.made.v%>% group_by(Venue.ID, Venue.Name, Year.OfBooking, Booking.Month, Booking.Day, Booking.Date, Total.Closing.Mins) %>%
+  summarise(totaldays = 1)
+bookings.closed <-  bookings.closed%>%  group_by(Venue.ID, Venue.Name, Year.OfBooking, Booking.Month, Booking.Day) %>%
+  summarise(totaldays = sum(totaldays), Total.Closing.Mins.All.Days = sum(Total.Closing.Mins))
+
+bookings.made.v$individual.booking <- 1
+bookings.made.v.grouped <-  bookings.made.v%>% group_by(Venue.Name, Suburb, Post.Code, State, Year.OfBooking, Booking.Month, Booking.Day, Booking.Weekend, Total.Closing.Mins,
+                                                        Total.Opening.Hours, SpeaksaLanguageOtherThanEnglishatHome.Proportionoftotalpopulation.Perc, Australiancitizen.Perc,
+                                                        ClubsInSuburb, recently.advertised,
+                                                        REGIONTYPE, Facility.Type, Organisation.Type, Organisation.Status, Populationdensity.ERPat30June.persons.km2,
+                                                        Booking.Type, Density, MaleFemalePerc, Geographical.classification, 
+                                                        Total.Full.Count.Grass                          ,Total.Full.Count.Non.Cushioned.Hard.Court ,      
+                                                        Total.Full.Count.Synthetic.Grass                ,Total.Full.Count.Clay                     ,      
+                                                        Total.Full.Count.Cushioned.Hard.Court           ,Total.Full.Count.Other                    ,      
+                                                        Total.Full.Count.Synthetic.Clay                 ,Hot.Shots.Red.count.All                   ,      
+                                                        Hot.Shots.Orange.Count.All                      ,Total.Full.Count.All                      ,      
+                                                        Other.Count.All                                 ,Outdoor.Full.Count.All                    ,      
+                                                        Indoor.Full.Count.All                           ,Lighted.Full.Count.All                    ,      
+                                                        has.Lights                                      ,has.indoor                                ,      
+                                                        has.outdoor                                     ,has.grass                                 ,      
+                                                        has.clay                                        ,has.hard                                  ,      
+                                                        has.hot.shot                                    ,court.options                             ,      
+                                                        nbr.courts                                      ,Aboriginal.Perc                           ,      
+                                                        Buddhism.Perc                                   ,Christianity.Perc                         ,      
+                                                        CompletedYear12orequivalent.Perc                ,Females.Total.no.                         ,      
+                                                        Hinduism.Perc                                   ,Islam.Perc                                ,      
+                                                        Judaism.Perc                                    ,LandArea.Ha                               ,      
+                                                        Males.Total.no.                                 ,MedianAge.Females.years                   ,      
+                                                        MedianAge.Males.years                           ,MedianAge.Persons.years                   ,      
+                                                        Medianequivalisedtotalhouseholdincome.weekly.AUD,NotanAustraliancitizen.Perc               ,      
+                                                        OtherReligions.Perc                             ,Persons.Total.no.                         ,      
+                                                        SecularBeliefs.Perc                             ,Establishmentswith15ormorerooms.no.        ,      
+                                                        Totalbornoverseas.Perc                          ,Totalnumberofbusinesses.no.               ,      
+                                                        WithGraduateDiploma.GraduateCertificate.Perc    ,WorkingAgePopulation.aged15.64years       ,
+                                                        WithPostgraduateDegree.Perc, WithPostSchoolQualifications.Perc, 
+                                                        BorninAmericas.Perc, BorninNorthAfricaandtheMiddleEast.Perc,
+                                                        BorninNorth.EastAsia.Perc, BorninNorth.WestEurope.Perc,
+                                                        BorninOceaniaandAntarctica.excludingAustralia.Perc,
+                                                        BorninSouth.EastAsia.Perc,
+                                                        BorninSouthernandCentralAsia.Perc,
+                                                        BorninSouthernandEasternEurope.Perc, 
+                                                        BorninSub.SaharanAfrica.Perc,
+                                                        LandArea.Km2,
+                                                        Persons.Total.no.,
+                                                        Totalfamilies.no.) %>%
+  summarise(PmBookings = sum(After6Pm), Court.Fee = sum(Court.Fee), Light.Fee= sum(Light.Fee), Admin.Fee = sum(Admin.Fee), Total.Cost = sum(Total.Cost), 
+            Total.Bookings = sum(individual.booking), Booking.Duration = sum(Booking.Duration))
+
+bookings.availability <-  bookings.made.v%>%  filter(Booking.Type != "Booking")  %>% 
+  group_by(Venue.Name, Suburb, Post.Code, State, Year.OfBooking, Booking.Month, Booking.Day, Australiancitizen.Perc, ClubsInSuburb, recently.advertised,
+           Total.Closing.Mins, Total.Opening.Hours, SpeaksaLanguageOtherThanEnglishatHome.Proportionoftotalpopulation.Perc,
+           Booking.Weekend, REGIONTYPE, Facility.Type, Organisation.Type, Organisation.Status,
+           Density, MaleFemalePerc, Geographical.classification, Populationdensity.ERPat30June.persons.km2,
+           Total.Full.Count.Grass                          ,Total.Full.Count.Non.Cushioned.Hard.Court ,      
+           Total.Full.Count.Synthetic.Grass                ,Total.Full.Count.Clay                     ,      
+           Total.Full.Count.Cushioned.Hard.Court           ,Total.Full.Count.Other                    ,      
+           Total.Full.Count.Synthetic.Clay                 ,Hot.Shots.Red.count.All                   ,      
+           Hot.Shots.Orange.Count.All                      ,Total.Full.Count.All                      ,      
+           Other.Count.All                                 ,Outdoor.Full.Count.All                    ,      
+           Indoor.Full.Count.All                           ,Lighted.Full.Count.All                    ,      
+           has.Lights                                      ,has.indoor                                ,      
+           has.outdoor                                     ,has.grass                                 ,      
+           has.clay                                        ,has.hard                                  ,      
+           has.hot.shot                                    ,court.options                             ,      
+           nbr.courts                                      ,Aboriginal.Perc                           ,      
+           Buddhism.Perc                                   ,Christianity.Perc                         ,      
+           CompletedYear12orequivalent.Perc                ,Females.Total.no.                         ,      
+           Hinduism.Perc                                   ,Islam.Perc                                ,      
+           Judaism.Perc                                    ,LandArea.Ha                               ,      
+           Males.Total.no.                                 ,MedianAge.Females.years                   ,      
+           MedianAge.Males.years                           ,MedianAge.Persons.years                   ,      
+           Medianequivalisedtotalhouseholdincome.weekly.AUD,NotanAustraliancitizen.Perc               ,      
+           OtherReligions.Perc                             ,Persons.Total.no.                         ,      
+           SecularBeliefs.Perc                             ,Establishmentswith15ormorerooms.no.        ,      
+           Totalbornoverseas.Perc                          ,Totalnumberofbusinesses.no.               ,      
+           WithGraduateDiploma.GraduateCertificate.Perc    ,WorkingAgePopulation.aged15.64years       ,
+           WithPostgraduateDegree.Perc, WithPostSchoolQualifications.Perc,
+           BorninAmericas.Perc, BorninNorthAfricaandtheMiddleEast.Perc,
+           BorninNorth.EastAsia.Perc, BorninNorth.WestEurope.Perc,
+           BorninOceaniaandAntarctica.excludingAustralia.Perc,
+           BorninSouth.EastAsia.Perc,
+           BorninSouthernandCentralAsia.Perc,
+           BorninSouthernandEasternEurope.Perc, 
+           BorninSub.SaharanAfrica.Perc,
+           LandArea.Km2,
+           Persons.Total.no.,
+           Totalfamilies.no.) %>% summarise(unavailability = sum(Booking.Duration) )
+
+
+
+bookings.made.v.grouped <- bookings.made.v.grouped %>% filter(Booking.Type == "Booking")
+bookings.made.v.grouped <- merge(bookings.made.v.grouped, bookings.availability, all.x = T)
+bookings.made.v.grouped[is.na(bookings.made.v.grouped$unavailability), "unavailability"] <- 0
+bookings.made.v.grouped <- merge(bookings.made.v.grouped, bookings.closed)
+
+bookings.made.v.grouped$Total.Closing.Mins.All.Days <- bookings.made.v.grouped$Total.Closing.Mins.All.Days*bookings.made.v.grouped$nbr.courts
+bookings.made.v.grouped$Total.Unavailablility <-  bookings.made.v.grouped$unavailability + 
+  (bookings.made.v.grouped$totaldays*bookings.made.v.grouped$Total.Closing.Mins*bookings.made.v.grouped$nbr.courts)
+bookings.made.v.grouped$Total.Availablility <-  bookings.made.v.grouped$totaldays*bookings.made.v.grouped$nbr.courts*1440 - bookings.made.v.grouped$Total.Unavailablility 
+bookings.made.v.grouped$Utilisation <-  (bookings.made.v.grouped$Booking.Duration/bookings.made.v.grouped$Total.Availablility)*100
+bookings.made.v.grouped$Total.Opening.Hours <- gsub(":00", "", bookings.made.v.grouped$Total.Opening.Hours)
+bookings.made.v.grouped$Total.Opening.Hours <- gsub(":30", ".5", bookings.made.v.grouped$Total.Opening.Hours)
+bookings.made.v.grouped$Total.Opening.Hours <- gsub(":15", ".25", bookings.made.v.grouped$Total.Opening.Hours)
+bookings.made.v.grouped$Total.Opening.Hours <- gsub(":45", ".75", bookings.made.v.grouped$Total.Opening.Hours)
+bookings.made.v.grouped$Total.Opening.Hours <- as.numeric(bookings.made.v.grouped$Total.Opening.Hours)
+
+
+bookings.made.v.grouped$Has.Late.Bookings <- bookings.made.v.grouped$Total.Opening.Hours>12
+venue.regions <- read.csv("../../venueRegions.csv", header = T)
+bookings.made.v.grouped <- merge(bookings.made.v.grouped, venue.regions, all.x = T)
+
+bookings.made.v.grouped.norm <- bookings.made.v.grouped %>% group_by(Venue.Name, Suburb, Post.Code, State, nbr.courts ) %>% 
+  mutate(Norm.bookings.count = Total.Bookings/max(Total.Bookings), 
+         Norm.bookings.duration = normBetweenZeroOne(Booking.Duration),# /max(Booking.Duration),
+         Norm.utilisation = normBetweenZeroOne(Utilisation),#/max(Utilisation),
+         Norm.Total.Availablility = normBetweenZeroOne(Total.Availablility),#/max(Total.Availablility),
+         Norm.Total.Unavailablility = Total.Unavailablility/max(Total.Unavailablility)) %>% ungroup()
+
+
+source("Memberships.R")
+source("MembersByCourt.R")
+
+
+
+#rm(list= ls(1)[grep("member", ls())])

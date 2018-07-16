@@ -17,6 +17,8 @@ plot(subseq.bookings$Days.Since.Last.Booking, ylab= "Days since last booked") + 
 mean(subseq.bookings[subseq.bookings$Days.Since.Last.Booking < 93 & subseq.bookings$Days.Since.Last.Booking > 0, "Days.Since.Last.Booking"])
 
 ggplot(data= subseq.bookings[subseq.bookings$Days.Since.Last.Booking<92,], aes(x=Days.Since.Last.Booking)) + geom_density() 
+ggplot(data= subseq.bookings[subseq.bookings$Days.Since.Last.Booking<92,], aes(x=Days.Since.Last.Booking)) +  geom_car()
+
 
 #H:That (inner-city) clubs have a higher amount of repeat, casual bookings as opposed to initial experience transitioning to Club Membership
 unique.subseq.bookers <- subseq.bookings %>% filter(Days.Since.Last.Booking >0) %>% 

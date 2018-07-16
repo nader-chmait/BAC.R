@@ -109,6 +109,7 @@ potential.courts[-which(potential.courts$Facility.Name %in% venues$Club.Facility
 potential.courts <- merge(potential.courts, venues)
 potential.courts <- merge(potential.courts, new.regions, all.x=T, by.x = c("Suburb", "State"), by.y = c("Region", "State"))
 potential.courts$Venue.Name <- potential.courts$Club.Facility.Name
+
 # potential.courts$Venue.Name <- as.character(potential.courts$Venue.Name)
 # potential.courts[grepl("Tennis Club",potential.courts$Club.Facility.Name) == T, "Venue.Name"] <- 
 #   c(gsub("Tennis Club", "TC" , potential.courts[grepl("Tennis Club", potential.courts$Club.Facility.Name) == T, c("Venue.Name")]))
@@ -135,6 +136,11 @@ potential.courts$MaleFemalePerc = potential.courts$Males.Total.no./potential.cou
 
 
 
+potential.courts <- merge(potential.courts, bookings.members.by.court, all.x = T)
+members.by.nbr.of.courts <- members.by.court.final[members.by.court.final$nbr.courts>0 , c("nbr.courts", "MembersByCourt")]
+members.by.nbr.of.courts<- members.by.nbr.of.courts %>% group_by(nbr.courts) %>% summarise(MembersByCourt = median(MembersByCourt)) 
 
+potential.courts[is.na(potential.courts$MembersByCourt), "MembersByCourt"] <- 
+  members.by.nbr.of.courts[potential.courts[is.na(potential.courts$MembersByCourt), "nbr.courts"] , "MembersByCourt"]
 
 
