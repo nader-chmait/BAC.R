@@ -3,9 +3,18 @@ all.members <- read.csv("../../Member_Report.csv", header = T)
 facility.names <- facilities[,c("Club.Name", "Club.Facility.Name")]
 facility.names <- facility.names[!duplicated(facility.names),]
 
+facility.names$Club.Name <- as.character(facility.names$Club.Name)
+facility.names$Club.Name[facility.names$Club.Name==""] <- as.character(facility.names$Club.Facility.Name[facility.names$Club.Name==""])
+facility.names$Club.Name[is.na(facility.names$Club.Name)] <- as.character(facility.names$Club.Facility.Name[is.na(facility.names$Club.Name)])
+
+facility.names$Club.Name <- standardise.club.names(facility.names$Club.Name)
+
 members <- all.members[ , c("Club.Name", "First.Name", "Last.Name", "Date.of.Birth", "Gender",
                         "Mailing.Suburb", "Mailing.State", "Updated.On", "Membership.Payment.Date")]
 
+members$Club.Name <- standardise.club.names(members$Club.Name)
+
+#unique(members[!(((members$Club.Name)) %in% unique((facility.names$Club.Facility.Name))), "Club.Name"])
 
 members <- merge(members, facility.names)
 members$Updated.On <- as.Date(members$Updated.On, "%d/%m/%Y")
@@ -40,6 +49,7 @@ bookings.made.members<- as.data.frame(bookings.made.members)
 in.members <- which(do.call(paste0, bookings.made.members[,c("Venue.Name","Player.Last.Name", "Player.First.Name", "Player.DOB", "Player.Gender")]) %in% 
                       do.call(paste0, members[,c("Club.Facility.Name", "Last.Name", "First.Name", "Date.of.Birth", "Gender")])
                     )
+
 bookings.made.members[in.members, "In.Members"] <- 1
 #nrow(bookings.made.members)
 bookings.made.members<- merge(bookings.made.members, members, by.x = c("Venue.Name", "Player.Last.Name", "Player.First.Name", "Player.DOB", "Player.Gender"),

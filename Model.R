@@ -1,12 +1,11 @@
 library(car)
 library(lme4)
 library(lattice)
-#library(DAAG)
 library(nnet)
 library(caret)
 library(e1071)
 require(reshape2)
-
+#library(ggforce)
 
 
 #old.par <- par(mar = c(0, 0, 0, 0))
@@ -29,12 +28,6 @@ bookings.made.v.grouped$Total.Bookings.Category <-  cut(log(bookings.made.v.grou
                                                         include.lowest = TRUE, labels= c( "-2","-1", "+0", "+1", "+2"))
 #View(bookings.made.v.grouped[1:10,c("Utilisation", "Utilisation.Category")])
 
-# cv.lm(data = bookings.made.v.grouped, form.lm = formula(log(Utilisation) ~ State + Populationdensity.ERPat30June.persons.km2 +
-#                                                           RegionLocation + ClubsInSuburb + recently.advertised + Medianequivalisedtotalhouseholdincome.weekly.AUD +
-#                                                           MedianAge.Persons.years + WorkingAgePopulation.aged15.64years + MaleFemalePerc + Australiancitizen.Perc + 
-#                                                           Booking.Month + as.factor(Year.OfBooking) + Booking.Day +
-#                                                           Total.Opening.Hours+ Facility.Type + Organisation.Type + nbr.courts + has.Lights + 
-#                                                           has.indoor + has.hard + has.clay + has.grass + has.hot.shot), m=3, dots = FALSE, seed=29, plotit=TRUE, printit=TRUE)
 
 bookings.made.v.grouped$Utilisation.Category  <- relevel(bookings.made.v.grouped$Utilisation.Category , ref = "-2")
 bookings.made.v.grouped$Total.Bookings.Category  <- relevel(bookings.made.v.grouped$Total.Bookings.Category , ref = "-2")
@@ -47,13 +40,29 @@ bookings.made.v.grouped$Year.OfBooking <- factor(bookings.made.v.grouped$Year.Of
 
 #bookings.members.by.court <- members.by.court.final[members.by.court.final$nbr.courts>0 , c("Club.Facility.Name", "Facility.Name", "Club.Name", "MembersByCourt")]
 #bookings.members.by.court$Facility.Name <- proper(bookings.members.by.court$Facility.Name)
-bookings.made.v.grouped$Facility.Name <- proper(bookings.made.v.grouped$Facility.Name)
+
+##bookings.made.v.grouped$Facility.Name <- proper(bookings.made.v.grouped$Facility.Name)
 
 data.model <- bookings.made.v.grouped
 
-bookings.members.by.court <- bookings.members.by.court[!duplicated(bookings.members.by.court$Facility.Name),]
-data.model <- merge(data.model, bookings.members.by.court, by.x="Facility.Name", by.y = "Facility.Name", all.x=T) # 
+bookings.members.by.court.X <- bmc#[!duplicated(bookings.members.by.court$Club.Facility.Name2),]
+bookings.members.by.court.2 <- bookings.members.by.court.X
+bookings.members.by.court.2$Club.Facility.Name2 <- bookings.members.by.court.2$Facility.Name
 
+bookings.members.by.court.X <- rbind(bookings.members.by.court.X, bookings.members.by.court.2)
+bookings.members.by.court.X$Club.Facility.Name2 <- standardise.club.names(bookings.members.by.court.X$Club.Facility.Name2)
+bookings.members.by.court.X <-bookings.members.by.court.X[!duplicated(bookings.members.by.court.X$Club.Facility.Name2),]
+
+data.model <- merge(data.model, bookings.members.by.court.X, by.x="Venue.Name", by.y = "Club.Facility.Name2", all.x=T) # 
+
+#data.model.2 <- merge(data.model, bookings.members.by.court, by.x="Club.Facility.Name2", by.y = "Club.Facility.Name2", all.x=T) # 
+#summary(is.na(data.model$MembersByCourt))
+#####!!!!!!!!!!!!!!!!!!!!!!
+#unique(data.model[is.na(data.model$MembersByCourt), c("Venue.Name")])
+
+## <<<< ADD AVAILABILITY AS A FUNCTION OF #COURTS AND MEMBERSBYCOURT >>> 
+data.model$AV <- data.model$nbr.courts/data.model$MembersByCourt
+#summary(data.model$AV)
 
 members.by.nbr.of.courts <- members.by.court.final[members.by.court.final$nbr.courts>0 , c("nbr.courts", "MembersByCourt")]
 members.by.nbr.of.courts<- members.by.nbr.of.courts %>% group_by(nbr.courts) %>% summarise(MembersByCourt = median(MembersByCourt)) 
@@ -62,10 +71,15 @@ data.model[is.na(data.model$MembersByCourt), "MembersByCourt"] <-
 
 
 members.gender.ratio <- members.gender.ratio[!duplicated(members.gender.ratio$Facility.Name),]
-data.model <- merge(data.model, members.gender.ratio[,c("Facility.Name", "male.member.ratio")], by.x="Facility.Name", by.y = "Facility.Name", all.x=T) # 
+data.model <- merge(data.model, members.gender.ratio[,c("Facility.Name", "male.member.ratio", "members")], by.x="Facility.Name", by.y = "Facility.Name", all.x=T) # 
 
 data.model[is.na(data.model$male.member.ratio), "male.member.ratio"] <- mean(members.gender.ratio$male.member.ratio)
 #summary(data.model$male.member.ratio)
+
+members.ages <- members.ages.by.club[!duplicated(members.ages.by.club$Facility.Name),]
+data.model <- merge(data.model, members.ages[,c("Facility.Name", "Mean.Age")], by.x="Facility.Name", by.y = "Facility.Name", all.x=T) # 
+data.model[is.na(data.model$Mean.Age), "Mean.Age"] <- mean(members.ages$Mean.Age)
+
 
 data.model$Booking.and.Utilisation <- normBetweenMinMax(data.model$Total.Bookings, 0,50) + 
   normBetweenMinMax(data.model$Utilisation, 0,50)
@@ -75,6 +89,16 @@ data.model$Booking.and.Utilisation.Category <- cut(data.model$Booking.and.Utilis
                                                        include.lowest = TRUE,
                                                        labels= c( "-2","-1", "+0", "+1", "+2"))
 #View(head(data.model))
+
+data.model$Utilisation.Weighted.By.NbrCourts <- data.model$Utilisation*sqrt(data.model$nbr.courts)
+
+data.model$Utilisation.descripencies <- data.model$Utilisation-data.model$Utilisation.Weighted.By.NbrCourts
+
+data.model[is.na(data.model$SpeaksaLanguageOtherThanEnglishatHome.Proportionoftotalpopulation.Perc), 
+           "SpeaksaLanguageOtherThanEnglishatHome.Proportionoftotalpopulation.Perc"] <- 
+  mean(data.model$SpeaksaLanguageOtherThanEnglishatHome.Proportionoftotalpopulation.Perc, na.rm=T)
+  
+#View(data.model[,c("Club.Name", "nbr.courts", "Utilisation", "Utilisation.Weighted.By.NbrCourts", "Utilisation.descripencies")])
 #--------------------------------------------------------------------------------------------------------------
 #--------------------------------------------------------------------------------------------------------------
 set.seed(1987) # Set Seed so that same sample can be reproduced in future also
@@ -82,33 +106,162 @@ set.seed(1987) # Set Seed so that same sample can be reproduced in future also
 sample <- sample.int(n = nrow(data.model), size = floor(.8*nrow(data.model)), replace = F)
 train <- data.model[sample, ]
 test  <- data.model[-sample, ]
+
+#--------------------------------------------------------------------------------------------------------------
+#--------------------------------------------------------------------------------------------------------------
+model <- lm(log(Utilisation)~#log(Utilisation) Utilisation.Weighted.By.NbrCourts
+              State + 
+              log(Populationdensity.ERPat30June.persons.km2)+ 
+              Totalfamilies.no. +
+              RegionLocation+
+              MaleFemalePerc +
+              male.member.ratio+
+              AV + 
+              #(ClubsInSuburb)+
+              recently.advertised +
+              #(Medianequivalisedtotalhouseholdincome.weekly.AUD) +
+              #SpeaksaLanguageOtherThanEnglishatHome.Proportionoftotalpopulation.Perc + 
+              (MedianAge.Persons.years)+ 
+              Mean.Age +
+              (WorkingAgePopulation.aged15.64years)+
+              Australiancitizen.Perc+
+              SecularBeliefs.Perc+
+              Booking.Month + 
+              Year.OfBooking+
+              Booking.Day +
+              Facility.Type +  
+              #Organisation.Type +
+              #Organisation.Status+
+              log(MembersByCourt)+ 
+              Total.Opening.Hours*nbr.courts +
+              nbr.courts*court.options +
+              #has.hard*has.clay*has.grass +
+              has.Lights +
+              has.hot.shot+ 
+              Amenities.options,
+            #offset= log(50/nbr.courts),
+            data = train)
+
+summary(model)
+qqnorm(model$residuals)
+qqline(model$residuals)
+car::vif(model)
+library(arm)
+coefplot(model, mar=c(12,2.5,2,2), vertical=F, offset=0.1, CI=1) + grid(length(coefficients(model)), 3) # mar=c(12,2.5,2,2),
+
+test.potential.venues <- potential.courts[ ,  c("State" , "Populationdensity.ERPat30June.persons.km2", "RegionLocation" , "ClubsInSuburb" , 
+                                                "recently.advertised" , "Medianequivalisedtotalhouseholdincome.weekly.AUD" , "MedianAge.Persons.years", 
+                                                "WorkingAgePopulation.aged15.64years", "MaleFemalePerc", "Australiancitizen.Perc", "Booking.Month" , 
+                                                "Year.OfBooking" , "Booking.Day","Total.Opening.Hours", "Facility.Type" , "Organisation.Type" ,
+                                                "nbr.courts",  "Lighted.Full.Count.All","has.Lights", "has.indoor", "has.outdoor", "has.hard", 
+                                                "has.clay", "has.grass", "has.hot.shot", "MembersByCourt", "court.options", "Totalfamilies.no.", "SecularBeliefs.Perc",
+                                                "Club.Facility.Name", "Club.Name", "Amenities.options", "Suburb", "DistanceToCBD.km")]
+
+#summary(standardise.club.names(test.potential.venues$Club.Facility.Name) %in% standardise.club.names(members.gender.ratio$Club.Facility.Name))
+test.potential.venues <- merge(test.potential.venues, members.gender.ratio[,c("Club.Facility.Name", "male.member.ratio")], by.x="Club.Facility.Name", by.y= "Club.Facility.Name", all.x=T)
+test.potential.venues[is.na(test.potential.venues$male.member.ratio), "male.member.ratio"] <- round(median(data.model$male.member.ratio))
+
+
+test.potential.venues[test.potential.venues$Facility.Type %in% c("LGA", "School"), "Facility.Type"] <- "Private"
+
+
+test.potential.venues <- merge(test.potential.venues, members.ages[,c("Club.Facility.Name2", "Mean.Age")], by.x="Club.Facility.Name", by.y= "Club.Facility.Name2", all.x=T)
+test.potential.venues[is.na(test.potential.venues$Mean.Age), "Mean.Age"] <- round(median(data.model$Mean.Age))
+test.potential.venues[is.na(test.potential.venues$MembersByCourt), "MembersByCourt"] <- median(test.potential.venues$MembersByCourt, na.rm=T)
+
+test.potential.venues$AV <- test.potential.venues$nbr.courts/test.potential.venues$MembersByCourt
+test.potential.venues[is.na(test.potential.venues$Total.Opening.Hours), "Total.Opening.Hours"] <- median(data.model$Total.Opening.Hours, na.rm=T)
+
+dtcbd <- unique(test.potential.venues[,c("State", "Suburb", "RegionLocation")])
+dtcbd <- dtcbd[!is.na(dtcbd$RegionLocation),]
+dtcbd$Suburb.RegionalLocation <-dtcbd$RegionLocation
+
+test.potential.venues <- merge(test.potential.venues, dtcbd, all.x=T)
+test.potential.venues$RegionLocation[is.na(test.potential.venues$RegionLocation)] <- test.potential.venues$Suburb.RegionalLocation[is.na(test.potential.venues$RegionLocation)]
+test.potential.venues$RegionLocation[is.na(test.potential.venues$RegionLocation)] <- "Remote area"
+test.potential.venues[test.potential.venues$Suburb== "Burpengary", "RegionLocation"] <- "Suburb"
+test.potential.venues[test.potential.venues$Suburb== "Nerang", "RegionLocation"] <- "Outer Suburb"
+test.potential.venues[test.potential.venues$Suburb== "North Lakes", "RegionLocation"] <- "City Border"
+test.potential.venues[test.potential.venues$Suburb== "St Lucia", "RegionLocation"] <- "City"
+test.potential.venues[test.potential.venues$Suburb== "Mitchell Park", "RegionLocation"] <- "City"
+test.potential.venues[test.potential.venues$Suburb== "Blackburn South", "RegionLocation"] <- "City Border"
+test.potential.venues[test.potential.venues$Suburb== "Hawthorn", "RegionLocation"] <- "City"
+test.potential.venues[test.potential.venues$Suburb== "Mitcham", "RegionLocation"] <- "Suburb"
+test.potential.venues[test.potential.venues$Suburb== "Point Cook", "RegionLocation"] <- "Suburb"
+test.potential.venues[test.potential.venues$Suburb== "Ringwood", "RegionLocation"] <- "Suburb"
+test.potential.venues[test.potential.venues$Suburb== "St Kilda", "RegionLocation"] <- "City"
+test.potential.venues[test.potential.venues$Suburb== "The Patch", "RegionLocation"] <- "Outer Suburb"
+test.potential.venues[test.potential.venues$Suburb== "Yering", "RegionLocation"] <- "Outer Suburb"
+test.potential.venues[test.potential.venues$Suburb== "Como", "RegionLocation"] <- "Outer Suburb"
+
+
+impute.mean <- function(x) replace(x, is.na(x), mean(as.numeric(x), na.rm = TRUE))
+
+test.potential.venues <- test.potential.venues %>% group_by(State, RegionLocation) %>% mutate(
+  Populationdensity.ERPat30June.persons.km2 = impute.mean(Populationdensity.ERPat30June.persons.km2),
+  Medianequivalisedtotalhouseholdincome.weekly.AUD = impute.mean(Medianequivalisedtotalhouseholdincome.weekly.AUD ),
+  MedianAge.Persons.years = impute.mean(MedianAge.Persons.years ),
+  WorkingAgePopulation.aged15.64years = impute.mean(WorkingAgePopulation.aged15.64years),
+  MaleFemalePerc = impute.mean(MaleFemalePerc ),
+  Australiancitizen.Perc = impute.mean(Australiancitizen.Perc),
+  Totalfamilies.no. = impute.mean(Totalfamilies.no. ),
+  SecularBeliefs.Perc = impute.mean(SecularBeliefs.Perc)
+)
+
+
+test.potential.venues$Year.OfBooking <- as.factor(test.potential.venues$Year.OfBooking)
+preds.potential.clubs <- predict(model, newdata = test.potential.venues)
+test.potential.venues$Rating <- preds.potential.clubs
+
+ggplot(test.potential.venues[test.potential.venues$State=="ACT", ], aes(x=Rating, y=Club.Facility.Name, size=nbr.courts, col=discretize(MembersByCourt, breaks = 5))) + 
+  geom_point()  + ylab("") + xlab("log(Utilisation)")#+ facet_wrap_paginate(~test.potential.venues$State)
+
+
+
+
+# club.distance.to.cbd[club.distance.to.cbd$DistanceToCBD.km<= 5 , "RegionLocation"] <- "Inner City"
+# club.distance.to.cbd[club.distance.to.cbd$DistanceToCBD.km>= 6  & club.distance.to.cbd$DistanceToCBD.km< 11 , "RegionLocation"] <- "City"
+# club.distance.to.cbd[club.distance.to.cbd$DistanceToCBD.km>= 11 & club.distance.to.cbd$DistanceToCBD.km< 21 , "RegionLocation"] <- "City Border"
+# club.distance.to.cbd[club.distance.to.cbd$DistanceToCBD.km>= 21 & club.distance.to.cbd$DistanceToCBD.km< 40 , "RegionLocation"] <- "Suburb"
+# club.distance.to.cbd[club.distance.to.cbd$DistanceToCBD.km>= 41 & club.distance.to.cbd$DistanceToCBD.km< 80 , "RegionLocation"] <- "Outer Suburb"
+#
+
+View(test.potential.venues[is.na(test.potential.venues$Rating),])
+nrow(test.potential.venues[is.na(test.potential.venues$Rating),])
+
 #--------------------------------------------------------------------------------------------------------------
 #--------------------------------------------------------------------------------------------------------------
 
 model <- multinom(Utilisation.Category ~#Utilisation.Category Booking.and.Utilisation.Category
                     State + 
-                    (Populationdensity.ERPat30June.persons.km2)+ 
-                    log(Totalfamilies.no.) +
+                    log(Populationdensity.ERPat30June.persons.km2)+ 
+                    Totalfamilies.no. +
                     RegionLocation+
-                    #MaleFemalePerc +
-                    (ClubsInSuburb)+
+                    MaleFemalePerc +
+                    male.member.ratio+
+                    AV + 
+                    #(ClubsInSuburb)+
                     recently.advertised +
-                    log(Medianequivalisedtotalhouseholdincome.weekly.AUD) + 
+                    #(Medianequivalisedtotalhouseholdincome.weekly.AUD) +
+                    #SpeaksaLanguageOtherThanEnglishatHome.Proportionoftotalpopulation.Perc + 
                     (MedianAge.Persons.years)+ 
+                    Mean.Age +
                     (WorkingAgePopulation.aged15.64years)+
-                    (Australiancitizen.Perc)+
+                    Australiancitizen.Perc+
+                    SecularBeliefs.Perc+
                     Booking.Month + 
                     Year.OfBooking+
                     Booking.Day +
-                    #has.Lights+
                     Facility.Type +  
-                    Organisation.Type +
-                    #nbr.courts,
-                    MembersByCourt +
-                    #has.hard*has.clay*has.grass + has.hot.shot,
-                    Total.Opening.Hours*nbr.courts+
-                    nbr.courts*court.options,
-                  offset= log(1/MembersByCourt),
+                    #Organisation.Type +
+                    #Organisation.Status+
+                    log(MembersByCourt)+ 
+                    Total.Opening.Hours*nbr.courts +
+                    nbr.courts*court.options +
+                    #has.hard*has.clay*has.grass +
+                    has.Lights +
+                    has.hot.shot+ 
+                    Amenities.options,
             data = train, maxit=1000)
 #summary(model)
 
@@ -179,58 +332,7 @@ lpp.2 <- lpp[lpp$variable == "Medianequivalisedtotalhouseholdincome.weekly.AUD",
 ## facetted by program type
 ggplot(lpp.2, aes(x = Populationdensity.ERPat30June.persons.km2, y = probability, colour = State)) + geom_line() + facet_grid(variable ~ ., scales = "free") #+
  # facet_wrap(~variable)
-#--------------------------------------------------------------------------------------------------------------
-#--------------------------------------------------------------------------------------------------------------
-model <- lm(log(Utilisation)~#Utilisation.Category
-              State + 
-              Populationdensity.ERPat30June.persons.km2+ 
-              log(Totalfamilies.no.) +
-              RegionLocation+
-              #MaleFemalePerc +
-              male.member.ratio+
-              (ClubsInSuburb)+
-              recently.advertised +
-              log(Medianequivalisedtotalhouseholdincome.weekly.AUD) + 
-              (MedianAge.Persons.years)+ 
-              (WorkingAgePopulation.aged15.64years)+
-              Australiancitizen.Perc+
-              SecularBeliefs.Perc+
-              Booking.Month + 
-              Year.OfBooking+
-              Booking.Day +
-              #has.Lights+
-              Facility.Type +  
-              Organisation.Type +
-              #nbr.courts,
-              MembersByCourt+ 
-              Total.Opening.Hours*nbr.courts +
-              #has.hard*has.clay*has.grass + has.hot.shot,
-              nbr.courts*court.options,
-            #offset= (nbr.courts),
-            data = train)
-summary(model)
-qqnorm(model$residuals)
-qqline(model$residuals)
-car::vif(model)
-library(arm)
-coefplot(model, vertical=F, offset=0.1, CI=1) + grid(length(coefficients(model)), 3) # mar=c(12,2.5,2,2),
 
-test.potential.venues <- potential.courts[ ,  c("State" , "Populationdensity.ERPat30June.persons.km2", "RegionLocation" , "ClubsInSuburb" , 
-                                                "recently.advertised" , "Medianequivalisedtotalhouseholdincome.weekly.AUD" , "MedianAge.Persons.years", 
-                                                "WorkingAgePopulation.aged15.64years", "MaleFemalePerc", "Australiancitizen.Perc", "Booking.Month" , 
-                                                "Year.OfBooking" , "Booking.Day","Total.Opening.Hours", "Facility.Type" , "Organisation.Type" ,
-                                                "nbr.courts",  "Lighted.Full.Count.All","has.Lights", "has.indoor", "has.outdoor", "has.hard", 
-                                                "has.clay", "has.grass", "has.hot.shot", "MembersByCourt", "court.options", "Totalfamilies.no.", "SecularBeliefs.Perc",
-                                                "Club.Facility.Name", "Club.Name")]
-
-test.potential.venues$Year.OfBooking <- as.factor(test.potential.venues$Year.OfBooking)
-preds.potential.clubs <- predict(model, newdata = test.potential.venues)
-#potential.courts$Rating <- preds.potential.clubs
-test.potential.venues$Rating <- preds.potential.clubs
-#View(potential.courts)
-
-ggplot(test.potential.venues, aes(x=Rating, y=Club.Facility.Name, size=nbr.courts, col=discretize(MembersByCourt, breaks = 5))) + 
-  geom_point() + ylab("") + xlab("log(Utilisation)")
 
 #--------------------------------------------------------------------------------------------------------------
 #--------------------------------------------------------------------------------------------------------------
@@ -241,7 +343,7 @@ model <- lm(log(Utilisation) ~ #Utilisation   log(Booking.Duration) ~ #
             #log(Total.Availablility) +
             #Geographical.classification +
             RegionLocation +
-            ClubsInSuburb+
+            #ClubsInSuburb+
             recently.advertised +
             #LandArea.Km2 + 
             #Persons.Total.no. +
@@ -305,11 +407,6 @@ summary(model)
 vif(model)
 
 
-bc<- boxCox(model)
-lambda<- bc$x[which.max(bc$y)]
-lambda
-
-
 
 View(which(coefficients(model)>0))
 levels(train$RegionLocation)
@@ -348,14 +445,30 @@ qqline(model$residuals)
 #--------------------------------------------------------------------------------------------------------------
 #Mixed-model
 
-model <- lmer(Utilisation^lambda  ~ #Utilisation  
+bc<- boxCox(model)
+lambda<- bc$x[which.max(bc$y)]
+lambda
+
+model <- lmer(log(Utilisation)  ~ #Utilisation  
               (1|Venue.Name) + 
               #Booking.Day +
               Booking.Month + 
-              as.factor(Year.OfBooking),
-            data = bookings.made.v.grouped)
-summary(model)
-dotplot(ranef(model, postVar = T))
+              as.factor(Year.OfBooking) + 
+              normBetweenZeroOne(Total.Availablility) +
+                nbr.courts,
+            data = data.model)
+#summary(model)
+dotplot(ranef(model, condVar = T))
+
+model <- lmer(log(Utilisation.Weighted.By.NbrCourts) ~ #Utilisation  
+                (1|Venue.Name) + 
+                #Booking.Day +
+                Booking.Month + 
+                as.factor(Year.OfBooking) + 
+                Total.Availablility,
+              data = data.model)
+#summary(model)
+dotplot(ranef(model, condVar = T))
 
 model <- lmer(Booking.Duration^lambda  ~ #Utilisation  
                 (1|Venue.Name) + 
@@ -364,4 +477,36 @@ model <- lmer(Booking.Duration^lambda  ~ #Utilisation
                 as.factor(Year.OfBooking)+ offset(log(Total.Availablility)),
               data = bookings.made.v.grouped)
 summary(model)
-dotplot(ranef(model, postVar = T))
+dotplot(ranef(model, condVar = T)) 
+
+
+#library(DAAG)
+cv.lm(data = data.model, form.lm = formula(log(Utilisation.Weighted.By.NbrCourts)~#log(Utilisation) Utilisation.Weighted.By.NbrCourts
+                                             State + 
+                                             log(Populationdensity.ERPat30June.persons.km2)+ 
+                                             Totalfamilies.no. +
+                                             RegionLocation+
+                                             MaleFemalePerc +
+                                             male.member.ratio+
+                                             #(ClubsInSuburb)+
+                                             recently.advertised +
+                                             #(Medianequivalisedtotalhouseholdincome.weekly.AUD) +
+                                             #SpeaksaLanguageOtherThanEnglishatHome.Proportionoftotalpopulation.Perc + 
+                                             (MedianAge.Persons.years)+ 
+                                             Mean.Age +
+                                             (WorkingAgePopulation.aged15.64years)+
+                                             Australiancitizen.Perc+
+                                             SecularBeliefs.Perc+
+                                             Booking.Month + 
+                                             Year.OfBooking+
+                                             Booking.Day +
+                                             has.Lights+
+                                             Facility.Type +  
+                                             #Organisation.Type +
+                                             #nbr.courts,
+                                             log(MembersByCourt)+ 
+                                             Total.Opening.Hours*nbr.courts +
+                                             nbr.courts*court.options +
+                                             has.hard*has.clay*has.grass +
+                                             has.hot.shot), m=3, dots = FALSE, seed=29, plotit=TRUE, printit=TRUE)
+

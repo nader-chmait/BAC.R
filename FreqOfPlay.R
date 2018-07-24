@@ -59,6 +59,28 @@ mean(mean.freq.play.weekly.2016$weekly.play.freq)
 #   xtabs(formula =  ~ Booking.Week.Number + Year.OfBooking) %>%
 #   as.data.frame()
 
+freq.play.weekly.2017 <- freq.play %>%  filter(Year.OfBooking ==2017) %>% group_by(Booking.Week.Number, Player.First.Name, Player.Last.Name, Player.DOB, Player.Gender) %>%
+  summarise(weekly.play.freq=n()) 
+
+players.2017 <- unique(freq.play.weekly.2017[,c("Player.First.Name", "Player.Last.Name", "Player.DOB", "Player.Gender")])
+players.2017<- players.2017[!is.na(players.2017$Player.Last.Name) & players.2017$Player.Last.Name != "Coach",]
+players.2017.weekly <- players.2017[rep(seq_len(nrow(players.2017)), each=52),]
+players.2017.weekly <- players.2017.weekly %>% group_by(Player.First.Name, Player.Last.Name, Player.DOB, Player.Gender) %>% 
+  mutate(Booking.Week.Number = seq(1:52)) %>% ungroup()
+
+
+freq.play.weekly.2017.all <- merge(freq.play.weekly.2017, players.2017.weekly, all.y = T)
+freq.play.weekly.2017.all[is.na(freq.play.weekly.2017.all$weekly.play.freq), "weekly.play.freq"] <- 0
+
+mean.freq.play.weekly.2017 <- freq.play.weekly.2017.all %>%  group_by(Booking.Week.Number, Player.First.Name, Player.Last.Name, Player.DOB, Player.Gender) %>%
+  summarise(weekly.play.freq=mean(weekly.play.freq)) 
+mean.freq.play.weekly.2017 <- mean.freq.play.weekly.2017[mean.freq.play.weekly.2017$weekly.play.freq <5, ]
+
+
+mean(mean.freq.play.weekly.2017$weekly.play.freq)
+
+mean.freq.play.weekly <- rbind(mean.freq.play.weekly.2016, mean.freq.play.weekly.2017)
+mean(mean.freq.play.weekly$weekly.play.freq)
 # freq.play.weekly$weekly.play.freq <- as.numeric(freq.play.weekly$weekly.play.freq)
 # freq.play <- rbind(as.data.frame(freq.play.weekly[,-c(2)]), as.data.frame(freq.play.monthly[,-c(2)]))
 # freq.play <- rbind(as.data.frame(freq.play), as.data.frame(freq.play.yearly))
@@ -74,8 +96,8 @@ mean(mean.freq.play.weekly.2016$weekly.play.freq)
 #By gender
 #--------------------------------------------------------------------------------------------------------------------------------------------
 
-freq.play.male <- mean.freq.play.weekly.2016[mean.freq.play.weekly.2016$Player.Gender == "Male" , ]
-freq.play.female <- mean.freq.play.weekly.2016[mean.freq.play.weekly.2016$Player.Gender == "Female" , ]
+freq.play.male <- mean.freq.play.weekly[mean.freq.play.weekly$Player.Gender == "Male" , ]
+freq.play.female <- mean.freq.play.weekly[mean.freq.play.weekly$Player.Gender == "Female" , ]
 
 male.mean.freq.play<-  mean(freq.play.male$weekly.play.freq, na.rm = T)
 female.mean.freq.play<-  mean(freq.play.female$weekly.play.freq, na.rm = T)
@@ -83,6 +105,8 @@ pie(c(male.mean.freq.play, female.mean.freq.play), labels = c(paste("male - ", r
                                                               paste("female - ", round(female.mean.freq.play,3))),
     main ="Average weekly frequency of booking")
 
+x<- data.frame(Gender= c("Male", "Female"), Freq= c(male.mean.freq.play, female.mean.freq.play))
+plot(x, main ="Average weekly frequency of booking")
 
 mean(freq.play.male$weekly.play.freq, na.rm = T)
 mean(freq.play.female$weekly.play.freq, na.rm = T)
@@ -92,7 +116,7 @@ mean(freq.play.female$weekly.play.freq, na.rm = T)
 #--------------------------------------------------------------------------------------------------------------------------------------------
 
 
-freq.play.age<- mean.freq.play.weekly.2016
+freq.play.age<- mean.freq.play.weekly
 freq.play.age$DOB <- as.Date(freq.play.age$Player.DOB, format = "%d/%m/%Y")
 freq.play.age<- freq.play.age[!is.na(freq.play.age$DOB) & year(freq.play.age$DOB) < 2012, ] 
 freq.play.age$Age <- floor(age_calc(freq.play.age$DOB, units = "years"))
@@ -109,7 +133,7 @@ axis(1, at=bc, labels=freq.play.age$Age.Group, tick=TRUE,  las=0, line=0)#, cex.
 #--------------------------------------------------------------------------------------------------------------------------------------------
 #By membership
 #--------------------------------------------------------------------------------------------------------------------------------------------
-freq.play.member <- mean.freq.play.weekly.2016
+freq.play.member <- mean.freq.play.weekly
 freq.play.member$In.Members <- "Non-Members"
 freq.play.member<- as.data.frame(freq.play.member)
 in.members <- which(do.call(paste0, freq.play.member[,c("Player.Last.Name", "Player.First.Name", "Player.DOB", "Player.Gender")]) %in% 
