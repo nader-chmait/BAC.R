@@ -217,6 +217,7 @@ facilities$Club.Facility.Name[is.na(facilities$Club.Name)] <- as.character(facil
 
 
 facilities[facilities$Club.Facility.Name=="Tennis Townsville" & facilities$State == "ACT", "State"] <- "QLD"
+facilities[facilities$Club.Facility.Name=="Haddon Tc" & facilities$State == "ACT", "State"] <- "VIC"
 
 #facilities$Facility.Name<- as.character(facilities$Facility.Name)
 #facilities[facilities$Facility.Name == "Loton Park Tennis Club", "Suburb"] <- "Perth City"

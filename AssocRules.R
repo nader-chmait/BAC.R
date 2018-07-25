@@ -8,7 +8,7 @@ library(arules)
 #                                        "WorkingAgePopulation.aged15.64years", "MaleFemalePerc", "Australiancitizen.Perc", "Total.Opening.Hours", 
 #                                        "nbr.courts",  "has.Lights", "has.clay", "has.grass", "has.hot.shot", "has.indoor", "has.hard", "Utilisation.Category")]
 
-data1 <- data.model[ ,c( "Populationdensity.ERPat30June.persons.km2", "RegionLocation" ,
+data1 <- data.model[ ,c( "State","Populationdensity.ERPat30June.persons.km2", "DistanceToCBD.km.truncated",
                           "recently.advertised" , "Medianequivalisedtotalhouseholdincome.weekly.AUD" , "MedianAge.Persons.years", 
                           "WorkingAgePopulation.aged15.64years", "MaleFemalePerc", "Australiancitizen.Perc", 
                           "has.Lights", "has.hot.shot", "MembersByCourt", "court.options", "SecularBeliefs.Perc",
@@ -47,9 +47,9 @@ itemFrequencyPlot(tData, topN=20, type="absolute", main="Item Frequency") # plot
 
 
 #-------
-high.utilisation <- apriori(tData, parameter = list(target = "frequent",  supp=0.001))
+#high.utilisation <- apriori(tData, parameter = list(target = "frequent",  supp=0.001))
 
-rules <- apriori (data=tData, parameter=list (supp=0.001, conf = 0.2, minlen=2, maxlen=5), appearance = list (default="lhs",rhs="Utilisation.Category=-2"), control = list (verbose=F)) # get rules that lead to buying 'whole milk'
+rules <- apriori (data=tData, parameter=list (supp=0.001, conf = 0.2, minlen=2, maxlen=5), appearance = list (default="lhs",rhs="Utilisation.Category=+2"), control = list (verbose=F)) # get rules that lead to buying 'whole milk'
 rules_conf <- sort (rules, by="confidence", decreasing=TRUE) # 'high-confidence' rules.
 inspect(head(rules_conf, 40))
 

@@ -98,6 +98,15 @@ data.model[is.na(data.model$SpeaksaLanguageOtherThanEnglishatHome.Proportionofto
            "SpeaksaLanguageOtherThanEnglishatHome.Proportionoftotalpopulation.Perc"] <- 
   mean(data.model$SpeaksaLanguageOtherThanEnglishatHome.Proportionoftotalpopulation.Perc, na.rm=T)
   
+
+data.model$DistanceToCBD.km.truncated <- data.model$DistanceToCBD.km
+data.model[data.model$DistanceToCBD.km.truncated > 100, "DistanceToCBD.km.truncated"] <- 100
+data.model$DistanceToCBD.km.truncated <- as.numeric(data.model$DistanceToCBD.km.truncated)
+
+# data.model[data.model$RegionLocation== "Inner City", "RegionLocation"] <- "City"
+# data.model[data.model$RegionLocation== "City Border", "RegionLocation"] <- "City"
+# data.model[data.model$RegionLocation== "Outer Suburb", "RegionLocation"] <- "Suburb"
+# data.model$RegionLocation <- factor(data.model$RegionLocation)
 #View(data.model[,c("Club.Name", "nbr.courts", "Utilisation", "Utilisation.Weighted.By.NbrCourts", "Utilisation.descripencies")])
 #--------------------------------------------------------------------------------------------------------------
 #--------------------------------------------------------------------------------------------------------------
@@ -111,9 +120,10 @@ test  <- data.model[-sample, ]
 #--------------------------------------------------------------------------------------------------------------
 model <- lm(log(Utilisation)~#log(Utilisation) Utilisation.Weighted.By.NbrCourts
               State + 
+              DistanceToCBD.km.truncated +  RegionLocation+
               log(Populationdensity.ERPat30June.persons.km2)+ 
               Totalfamilies.no. +
-              RegionLocation+
+              #RegionLocation+
               MaleFemalePerc +
               male.member.ratio+
               AV + 
@@ -146,7 +156,7 @@ summary(model)
 qqnorm(model$residuals)
 qqline(model$residuals)
 car::vif(model)
-library(arm)
+#library(arm)
 coefplot(model, mar=c(12,2.5,2,2), vertical=F, offset=0.1, CI=1) + grid(length(coefficients(model)), 3) # mar=c(12,2.5,2,2),
 
 test.potential.venues <- potential.courts[ ,  c("State" , "Populationdensity.ERPat30June.persons.km2", "RegionLocation" , "ClubsInSuburb" , 
@@ -177,22 +187,31 @@ dtcbd <- dtcbd[!is.na(dtcbd$RegionLocation),]
 dtcbd$Suburb.RegionalLocation <-dtcbd$RegionLocation
 
 test.potential.venues <- merge(test.potential.venues, dtcbd, all.x=T)
-test.potential.venues$RegionLocation[is.na(test.potential.venues$RegionLocation)] <- test.potential.venues$Suburb.RegionalLocation[is.na(test.potential.venues$RegionLocation)]
+#test.potential.venues$RegionLocation[is.na(test.potential.venues$RegionLocation)] <- test.potential.venues$Suburb.RegionalLocation[is.na(test.potential.venues$RegionLocation)]
+
+test.potential.venues[is.na(test.potential.venues$RegionLocation) & test.potential.venues$Suburb== "Burpengary", c("RegionLocation", "DistanceToCBD.km")] <- c("Suburb", 30)
+test.potential.venues[is.na(test.potential.venues$RegionLocation) & test.potential.venues$Suburb== "Nerang", c("RegionLocation", "DistanceToCBD.km")] <- c("Outer Suburb", 30)
+test.potential.venues[is.na(test.potential.venues$RegionLocation) & test.potential.venues$Suburb== "North Lakes", c("RegionLocation", "DistanceToCBD.km")] <- c("City Border", 20)
+test.potential.venues[is.na(test.potential.venues$RegionLocation) & test.potential.venues$Suburb== "St Lucia", c("RegionLocation", "DistanceToCBD.km")] <- c("City", 10)
+test.potential.venues[is.na(test.potential.venues$RegionLocation) & test.potential.venues$Suburb== "Mitchell Park", c("RegionLocation", "DistanceToCBD.km")] <- c("City", 10)
+test.potential.venues[is.na(test.potential.venues$RegionLocation) & test.potential.venues$Suburb== "Blackburn South", c("RegionLocation", "DistanceToCBD.km")] <- c("City Border", 20)
+test.potential.venues[is.na(test.potential.venues$RegionLocation) & test.potential.venues$Suburb== "Hawthorn", c("RegionLocation", "DistanceToCBD.km")] <- c("City", 10)
+test.potential.venues[is.na(test.potential.venues$RegionLocation) & test.potential.venues$Suburb== "Mitcham", c("RegionLocation", "DistanceToCBD.km")] <- c("Suburb", 30)
+test.potential.venues[is.na(test.potential.venues$RegionLocation) & test.potential.venues$Suburb== "Point Cook", c("RegionLocation", "DistanceToCBD.km")] <- c("Suburb", 30)
+test.potential.venues[is.na(test.potential.venues$RegionLocation) & test.potential.venues$Suburb== "Ringwood", c("RegionLocation", "DistanceToCBD.km")] <- c("Suburb", 30)
+test.potential.venues[is.na(test.potential.venues$RegionLocation) & test.potential.venues$Suburb== "St Kilda", c("RegionLocation", "DistanceToCBD.km")] <- c("City", 10)
+test.potential.venues[is.na(test.potential.venues$RegionLocation) & test.potential.venues$Suburb== "The Patch", c("RegionLocation", "DistanceToCBD.km")] <- c("Outer Suburb", 40)
+test.potential.venues[is.na(test.potential.venues$RegionLocation) & test.potential.venues$Suburb== "Yering", c("RegionLocation", "DistanceToCBD.km")] <- c("Outer Suburb", 40)
+test.potential.venues[is.na(test.potential.venues$RegionLocation) & test.potential.venues$Suburb== "Como", c("RegionLocation", "DistanceToCBD.km")] <-c("Outer Suburb", 40)
+test.potential.venues[is.na(test.potential.venues$RegionLocation) & test.potential.venues$Suburb== "Berriedale", c("RegionLocation", "DistanceToCBD.km")] <-c("City Border", 11)
+test.potential.venues[is.na(test.potential.venues$RegionLocation) & test.potential.venues$Suburb== "Metcalfe", c("RegionLocation", "DistanceToCBD.km")] <-c("Outer Suburb", 40)
+test.potential.venues[is.na(test.potential.venues$RegionLocation) & test.potential.venues$Suburb== "Yannathan", c("RegionLocation", "DistanceToCBD.km")] <-c("Outer Suburb", 75)
 test.potential.venues$RegionLocation[is.na(test.potential.venues$RegionLocation)] <- "Remote area"
-test.potential.venues[test.potential.venues$Suburb== "Burpengary", "RegionLocation"] <- "Suburb"
-test.potential.venues[test.potential.venues$Suburb== "Nerang", "RegionLocation"] <- "Outer Suburb"
-test.potential.venues[test.potential.venues$Suburb== "North Lakes", "RegionLocation"] <- "City Border"
-test.potential.venues[test.potential.venues$Suburb== "St Lucia", "RegionLocation"] <- "City"
-test.potential.venues[test.potential.venues$Suburb== "Mitchell Park", "RegionLocation"] <- "City"
-test.potential.venues[test.potential.venues$Suburb== "Blackburn South", "RegionLocation"] <- "City Border"
-test.potential.venues[test.potential.venues$Suburb== "Hawthorn", "RegionLocation"] <- "City"
-test.potential.venues[test.potential.venues$Suburb== "Mitcham", "RegionLocation"] <- "Suburb"
-test.potential.venues[test.potential.venues$Suburb== "Point Cook", "RegionLocation"] <- "Suburb"
-test.potential.venues[test.potential.venues$Suburb== "Ringwood", "RegionLocation"] <- "Suburb"
-test.potential.venues[test.potential.venues$Suburb== "St Kilda", "RegionLocation"] <- "City"
-test.potential.venues[test.potential.venues$Suburb== "The Patch", "RegionLocation"] <- "Outer Suburb"
-test.potential.venues[test.potential.venues$Suburb== "Yering", "RegionLocation"] <- "Outer Suburb"
-test.potential.venues[test.potential.venues$Suburb== "Como", "RegionLocation"] <- "Outer Suburb"
+test.potential.venues$DistanceToCBD.km[is.na(test.potential.venues$DistanceToCBD.km)] <-  100
+
+test.potential.venues$DistanceToCBD.km.truncated <- test.potential.venues$DistanceToCBD.km
+test.potential.venues[test.potential.venues$DistanceToCBD.km.truncated > 100, "DistanceToCBD.km.truncated"] <- 100
+test.potential.venues$DistanceToCBD.km.truncated <- as.numeric(test.potential.venues$DistanceToCBD.km.truncated)
 
 
 impute.mean <- function(x) replace(x, is.na(x), mean(as.numeric(x), na.rm = TRUE))
@@ -209,13 +228,17 @@ test.potential.venues <- test.potential.venues %>% group_by(State, RegionLocatio
 )
 
 
+# test.potential.venues[test.potential.venues$RegionLocation== "Inner City", "RegionLocation"] <- "City"
+# test.potential.venues[test.potential.venues$RegionLocation== "City Border", "RegionLocation"] <- "City"
+# test.potential.venues[test.potential.venues$RegionLocation== "Outer Suburb", "RegionLocation"] <- "Suburb"
+# test.potential.venues$RegionLocation <- factor(test.potential.venues$RegionLocation)
+
 test.potential.venues$Year.OfBooking <- as.factor(test.potential.venues$Year.OfBooking)
 preds.potential.clubs <- predict(model, newdata = test.potential.venues)
 test.potential.venues$Rating <- preds.potential.clubs
 
 ggplot(test.potential.venues[test.potential.venues$State=="ACT", ], aes(x=Rating, y=Club.Facility.Name, size=nbr.courts, col=discretize(MembersByCourt, breaks = 5))) + 
   geom_point()  + ylab("") + xlab("log(Utilisation)")#+ facet_wrap_paginate(~test.potential.venues$State)
-
 
 
 
@@ -226,8 +249,8 @@ ggplot(test.potential.venues[test.potential.venues$State=="ACT", ], aes(x=Rating
 # club.distance.to.cbd[club.distance.to.cbd$DistanceToCBD.km>= 41 & club.distance.to.cbd$DistanceToCBD.km< 80 , "RegionLocation"] <- "Outer Suburb"
 #
 
-View(test.potential.venues[is.na(test.potential.venues$Rating),])
-nrow(test.potential.venues[is.na(test.potential.venues$Rating),])
+View(test.potential.venues[is.na(test.potential.venues$DistanceToCBD.km.truncated),])
+nrow(test.potential.venues[is.na(test.potential.venues$DistanceToCBD.km.truncated),])
 
 #--------------------------------------------------------------------------------------------------------------
 #--------------------------------------------------------------------------------------------------------------
